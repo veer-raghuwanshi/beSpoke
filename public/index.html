@@ -48,6 +48,25 @@
         <h2>API activity</h2>
         <ol id="activity" aria-live="polite"></ol>
       </section>
+      <section class="card">
+        <div class="section-heading">
+          <div>
+            <h2>Reliability test cases</h2>
+            <p>Runs only from the terminal against the protected <code>bespoke_test</code> database.</p>
+          </div>
+          <button id="copyTestCommand" class="secondary" type="button">Copy test command</button>
+        </div>
+        <ol class="test-cases">
+          <li>TC-019 — Concurrent claims never oversell stock.</li>
+          <li>TC-009 — Claim creates an active hold and reduces available inventory.</li>
+          <li>TC-046 — Repeating a claim idempotency key returns the original hold.</li>
+          <li>TC-093 — One user cannot exceed the maximum units per drop.</li>
+          <li>TC-026 / TC-029 — Expiry returns stock once, even when the worker runs twice.</li>
+          <li>TC-047 — Concurrent payment confirmation deducts the wallet once.</li>
+          <li>TC-036 / TC-042 — Insufficient balance preserves wallet and active hold.</li>
+          <li>TC-052 / TC-053 — Released stock promotes the first FIFO waitlist user.</li>
+        </ol>
+      </section>
     </main>
     <script>
       const output = document.querySelector('#output');
@@ -135,6 +154,15 @@
           await request(`${apiBase}/v1/me`, { headers: userHeaders() });
         } catch (error) {
           show(error);
+        }
+      });
+      document.querySelector('#copyTestCommand').addEventListener('click', async () => {
+        const command = "npm run test:integration -- -MongoUri 'YOUR_BESPOKE_TEST_MONGODB_URI'";
+        try {
+          await navigator.clipboard.writeText(command);
+          show({ message: 'Test command copied. Paste it into PowerShell after replacing the URI.' });
+        } catch {
+          show({ command, message: 'Copy was blocked by the browser; copy this command manually.' });
         }
       });
       if (location.port !== '3000') {
