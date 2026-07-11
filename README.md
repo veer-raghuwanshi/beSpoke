@@ -19,6 +19,35 @@ The replica set is intentional: MongoDB transactions require it. Set
 The API starts at `http://localhost:3000`; the OpenAPI document is at
 `/openapi.yaml`.
 
+### Environment configuration
+
+Create `.env` from `.env.example` before running the application:
+
+```env
+PORT=3000
+NODE_ENV=development
+MONGODB_URI=mongodb://localhost:27017/bespoke?replicaSet=rs0
+MONGO_MAX_POOL_SIZE=20
+HOLD_TTL_SECONDS=120
+RECONCILE_INTERVAL_MS=5000
+ADMIN_KEY=dev-admin
+CORS_ORIGINS=http://localhost:3000
+```
+
+| Variable                | Purpose                                                       |
+| ----------------------- | ------------------------------------------------------------- |
+| `PORT`                  | HTTP server port                                              |
+| `NODE_ENV`              | Runtime environment (`development` or `production`)           |
+| `MONGODB_URI`           | MongoDB replica-set or Atlas connection string                |
+| `MONGO_MAX_POOL_SIZE`   | Maximum number of MongoDB connections in the application pool |
+| `HOLD_TTL_SECONDS`      | How long a stock reservation remains active                   |
+| `RECONCILE_INTERVAL_MS` | How often expired holds and waitlists are reconciled          |
+| `ADMIN_KEY`             | Required `x-admin-key` value for creating drops               |
+| `CORS_ORIGINS`          | Comma-separated browser origins allowed in production         |
+
+Never commit a real Atlas password or production `ADMIN_KEY`. Keep secrets in
+your local `.env`; only `.env.example` belongs in the repository.
+
 ### Atlas setup
 
 1. Create a MongoDB Atlas project and deploy a free M0 cluster.
