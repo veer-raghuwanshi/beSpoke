@@ -1,0 +1,9 @@
+import { Schema, model } from 'mongoose';
+
+const opts = { timestamps: true, versionKey: false as const };
+export const Drop = model('Drop', new Schema({ item: { type: String, required: true }, totalStock: Number, available: Number, liveAt: Date, price: Number, maxPerUser: Number }, opts));
+export const Wallet = model('Wallet', new Schema({ userId: { type: String, unique: true }, balance: { type: Number, min: 0, required: true } }, opts));
+export const Allocation = model('Allocation', new Schema({ dropId: { type: Schema.Types.ObjectId, required: true }, userId: { type: String, required: true }, held: { type: Number, default: 0 }, purchased: { type: Number, default: 0 } }, opts).index({ dropId: 1, userId: 1 }, { unique: true }));
+export const Hold = model('Hold', new Schema({ dropId: { type: Schema.Types.ObjectId, required: true }, userId: { type: String, required: true }, quantity: Number, status: { type: String, enum: ['ACTIVE', 'CONFIRMED', 'EXPIRED', 'CANCELLED'], default: 'ACTIVE' }, expiresAt: Date, idempotencyKey: String, source: { type: String, enum: ['CLAIM', 'WAITLIST'], default: 'CLAIM' } }, opts).index({ dropId: 1, userId: 1, idempotencyKey: 1 }, { unique: true, partialFilterExpression: { idempotencyKey: { $type: 'string' } } }).index({ status: 1, expiresAt: 1 }));
+export const Purchase = model('Purchase', new Schema({ holdId: { type: Schema.Types.ObjectId, unique: true }, dropId: Schema.Types.ObjectId, userId: String, quantity: Number, unitPrice: Number, total: Number, idempotencyKey: String }, opts));
+export const Waitlist = model('Waitlist', new Schema({ dropId: { type: Schema.Types.ObjectId, required: true }, userId: { type: String, required: true }, status: { type: String, enum: ['WAITING', 'PROMOTED', 'SKIPPED'], default: 'WAITING' }, sequence: { type: Number, required: true }, idempotencyKey: String }, opts).index({ dropId: 1, userId: 1 }, { unique: true }).index({ dropId: 1, status: 1, sequence: 1 }));
