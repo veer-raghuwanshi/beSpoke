@@ -24,7 +24,9 @@ export const cancelHold: RequestHandler = async (req, res, next) => {
       userId: userIdFrom(req),
     });
     if (!hold) throw new ApiError(404, 'Hold not found');
+
     if (!(await releaseHold(req.params.holdId, 'CANCELLED')))
+      
       throw new ApiError(409, 'Hold is no longer active');
     res.status(204).end();
   } catch (error) {

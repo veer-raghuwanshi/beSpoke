@@ -3,15 +3,20 @@ import { ApiError } from '../utils/api-error.js';
 
 export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   if (err instanceof ApiError)
+
     return void res.status(err.status).json({ error: err.message });
+
   if (err?.message === 'Origin is not allowed by CORS')
     return void res.status(403).json({ error: err.message });
+
   if (err?.isJoi)
     return void res
       .status(400)
       .json({ error: 'Invalid request', details: err.details });
+
   if (err?.code === 11000)
     return void res.status(409).json({ error: 'Duplicate request' });
+  
   console.error(err);
   res.status(500).json({ error: 'Internal server error' });
 };

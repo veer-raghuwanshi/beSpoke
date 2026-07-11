@@ -9,7 +9,8 @@ export async function reconcile() {
   })
     .select('_id')
     .limit(100);
-  for (const hold of expired) await releaseHold(String(hold._id), 'EXPIRED');
+  for (const hold of expired) 
+    await releaseHold(String(hold._id), 'EXPIRED');
   const drops = await Drop.find({
     available: { $gt: 0 },
     liveAt: { $lte: new Date() },

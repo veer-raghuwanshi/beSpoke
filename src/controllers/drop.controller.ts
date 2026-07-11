@@ -21,10 +21,13 @@ export const getDrop: RequestHandler = async (req, res, next) => {
 export const createClaim: RequestHandler = async (req, res, next) => {
   try {
     const { error: idError } = objectId.validate(req.params.dropId);
+
     if (idError) throw idError;
+
     const { value, error } = claimSchema.validate(req.body, {
       abortEarly: false,
     });
+    
     if (error) throw error;
     const { quantity } = value;
     res

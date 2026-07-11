@@ -25,7 +25,9 @@ export const claim = (
     }
     const drop = await Drop.findById(dropId).session(session);
     if (!drop) throw new ApiError(404, 'Drop not found');
-    if (drop.liveAt! > new Date()) throw new ApiError(409, 'Drop is not live');
+
+    if (drop.liveAt! > new Date())
+       throw new ApiError(409, 'Drop is not live');
     const allocation = await Allocation.findOne({
       dropId: drop._id,
       userId,

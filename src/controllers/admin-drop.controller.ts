@@ -7,8 +7,11 @@ import { createDropSchema } from '../validators/drop.validator.js';
 export const createDrop: RequestHandler = async (req, res, next) => {
   try {
     if (req.header('x-admin-key') !== config.adminKey)
+
       throw new ApiError(401, 'Admin key required');
-    const { value: body, error } = createDropSchema.validate(req.body, {
+
+    const { value: body, error } = createDropSchema.validate(req.body,
+       {
       abortEarly: false,
     });
     if (error) throw error;

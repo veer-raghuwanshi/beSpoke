@@ -5,7 +5,9 @@ import { userIdFrom } from '../middleware/auth.js';
 export const getMyAccount: RequestHandler = async (req, res, next) => {
   try {
     const userId = userIdFrom(req);
-    const [wallet, holds, purchases] = await Promise.all([
+
+    const [wallet, holds, purchases] = 
+    await Promise.all([
       Wallet.findOne({ userId }),
       Hold.find({ userId }).sort({ createdAt: -1 }),
       Purchase.find({ userId }).sort({ createdAt: -1 }),

@@ -20,7 +20,11 @@ npm run build
 $server = Start-Process -FilePath 'node' -ArgumentList 'dist/server.js' -WorkingDirectory $root -WindowStyle Hidden -PassThru
 try {
   $ready = $false
-  1..20 | ForEach-Object { if (-not $ready) { Start-Sleep -Seconds 1; try { $ready = (Invoke-WebRequest -UseBasicParsing "$env:API_BASE_URL/healthz" -TimeoutSec 2).StatusCode -eq 200 } catch {} } }
+  1..20 | ForEach-Object 
+  { if (-not $ready) 
+    { Start-Sleep -Seconds 1; 
+     try { $ready = (Invoke-WebRequest -UseBasicParsing "$env:API_BASE_URL/healthz" -TimeoutSec 2).StatusCode -eq 200 }
+      catch {} } }
   if (-not $ready) { throw 'Load-test server did not become healthy within 20 seconds.' }
   npx tsx scripts/load-test.ts
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
