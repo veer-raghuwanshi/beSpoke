@@ -47,6 +47,9 @@
     </main>
     <script>
       const output = document.querySelector('#output');
+      // Served UI uses same-origin requests; a file-opened UI targets the local API.
+      const apiBase =
+        window.BESPOKE_API_BASE ?? (location.protocol === 'file:' ? 'http://localhost:3000' : '');
       const now = new Date(Date.now() + 60000);
       document.querySelector('[name="liveAt"]').value = now.toISOString().slice(0, 16);
       const show = (value) => {
@@ -71,7 +74,7 @@
         event.preventDefault();
         const data = Object.fromEntries(new FormData(event.currentTarget));
         try {
-          const drop = await request('/v1/admin/drops', {
+          const drop = await request(`${apiBase}/v1/admin/drops`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -94,7 +97,7 @@
         event.preventDefault();
         const data = Object.fromEntries(new FormData(event.currentTarget));
         try {
-          await request(`/v1/drops/${data.dropId}/claims`, {
+          await request(`${apiBase}/v1/drops/${data.dropId}/claims`, {
             method: 'POST',
             headers: {
               ...userHeaders(),
@@ -109,7 +112,7 @@
       document.querySelector('#waitlistButton').addEventListener('click', async () => {
         const dropId = document.querySelector('[name="dropId"]').value;
         try {
-          await request(`/v1/drops/${dropId}/waitlist`, {
+          await request(`${apiBase}/v1/drops/${dropId}/waitlist`, {
             method: 'POST',
             headers: userHeaders(),
           });
@@ -119,14 +122,14 @@
       });
       document.querySelector('#accountButton').addEventListener('click', async () => {
         try {
-          await request('/v1/me', { headers: userHeaders() });
+          await request(`${apiBase}/v1/me`, { headers: userHeaders() });
         } catch (error) {
           show(error);
         }
       });
       if (location.protocol === 'file:') {
         output.textContent =
-          'The page is open as a file, so API calls cannot work. Start the backend with "npm run dev" and open http://localhost:3000 instead.';
+          'Direct-file mode will call http://localhost:3000. Start the backend with "npm run dev" before submitting a request.';
       }
     </script>
   </body>

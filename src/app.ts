@@ -1,3 +1,4 @@
+import cors from 'cors';
 import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -6,6 +7,8 @@ import { dropRouter } from './routes/drop.routes.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const app = express();
+// Allows the API console to call localhost even when index.html is opened as file://.
+app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(root, 'public')));
 app.use('/v1', dropRouter);
