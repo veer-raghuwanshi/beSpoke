@@ -4,17 +4,16 @@ A small REST API for scarce, scheduled fashion drops. The design optimizes for c
 
 ## Run it
 
-Prerequisites: Node 20+ and Docker.
+Prerequisites: Node 20+ and a MongoDB replica set (local or Atlas).
 
 ```sh
-docker compose up -d
 npm install
 Copy-Item .env.example .env       # PowerShell; optional defaults already work
 npm run seed
 npm run dev
 ```
 
-The replica set is intentional: MongoDB transactions require it. The API starts at `http://localhost:3000`; the OpenAPI document is at `/openapi.yaml`.
+The replica set is intentional: MongoDB transactions require it. Set `MONGODB_URI` in `.env` to your local or Atlas replica-set connection string. The API starts at `http://localhost:3000`; the OpenAPI document is at `/openapi.yaml`.
 
 Try a claim (replace `DROP_ID` with the seed output):
 
@@ -60,7 +59,7 @@ The brief does not specify a waitlist quantity, so this implementation makes the
 
 ## Tests
 
-`npm test` runs the transaction integration tests when `MONGODB_URI` points to the Docker replica set. They exercise the two important races: many concurrent claims cannot exceed stock, and repeated confirmation charges only once. Set the environment variable explicitly if your shell does not load `.env`:
+`npm test` runs the transaction integration tests when `MONGODB_URI` points to a replica set. They exercise the two important races: many concurrent claims cannot exceed stock, and repeated confirmation charges only once. Set the environment variable explicitly if your shell does not load `.env`:
 
 ```sh
 $env:MONGODB_URI='mongodb://localhost:27017/bespoke_test?replicaSet=rs0'; npm test
