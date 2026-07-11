@@ -1,5 +1,13 @@
 import { ClientSession, Types } from 'mongoose';
-import { Allocation, Drop, Hold, Purchase, Waitlist, Wallet } from '../repositories/drop.repository.js';
+import {
+  Allocation,
+  Drop,
+  Hold,
+  Purchase,
+  Waitlist,
+  WaitlistSequence,
+  Wallet,
+} from '../repositories/drop.repository.js';
 import { config } from '../config/env.js';
 import { mongoose } from '../config/database.js';
 import { ApiError } from '../utils/api-error.js';
@@ -209,10 +217,15 @@ export async function joinWaitlist(dropId: string, userId: string) {
   const drop = await Drop.findById(dropId);
   if (!drop) throw new ApiError(404, 'Drop not found');
   if (drop.available! > 0) throw new ApiError(409, 'Stock is currently available; claim it directly');
-  const sequence = Date.now() * 1000 + Math.floor(Math.random() * 1000);
+  // A counter, unlike a timestamp/random suffix, cannot reorder simultaneous joins.
+  const counter = await WaitlistSequence.findByIdAndUpdate(
+    drop._id,
+    { $inc: { value: 1 } },
+    { upsert: true, new: true }
+  );
   return Waitlist.findOneAndUpdate(
     { dropId: drop._id, userId },
-    { $setOnInsert: { status: 'WAITING', sequence } },
+    { $setOnInsert: { status: 'WAITING', sequence: counter.value } },
     { upsert: true, new: true }
   );
 }

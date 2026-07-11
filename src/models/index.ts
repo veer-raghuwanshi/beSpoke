@@ -108,3 +108,9 @@ export const Waitlist = model(
     .index({ dropId: 1, userId: 1 }, { unique: true })
     .index({ dropId: 1, status: 1, sequence: 1 })
 );
+
+/** Atomic per-drop sequence makes FIFO promotion deterministic even under concurrent joins. */
+export const WaitlistSequence = model(
+  'WaitlistSequence',
+  new Schema({ _id: { type: Schema.Types.ObjectId, required: true }, value: { type: Number, default: 0 } })
+);

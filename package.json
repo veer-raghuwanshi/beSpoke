@@ -9,6 +9,7 @@
     "start": "node dist/server.js",
     "seed": "tsx src/seed/index.ts",
     "format": "prettier --write \"src/**/*.ts\" \"public/**/*.{html,css}\" \"*.{json,yaml,md}\"",
+    "test:integration": "powershell -ExecutionPolicy Bypass -File scripts/run-integration-tests.ps1",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand"
   },
   "dependencies": {

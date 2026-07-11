@@ -71,6 +71,12 @@ The brief does not specify a waitlist quantity, so this implementation makes the
 $env:MONGODB_URI='mongodb://localhost:27017/bespoke_test?replicaSet=rs0'; $env:RUN_INTEGRATION_TESTS='true'; npm test
 ```
 
+Or use the guarded runner. It rejects a URI that does not target the dedicated `bespoke_test` database:
+
+```powershell
+npm run test:integration -- -MongoUri 'mongodb+srv://USER:PASSWORD@CLUSTER.mongodb.net/bespoke_test?retryWrites=true&w=majority'
+```
+
 ## Known limitations / next steps
 
 - Admin auth, input rate limiting, observability, and a durable outbox/audit ledger are intentionally outside the exercise.
