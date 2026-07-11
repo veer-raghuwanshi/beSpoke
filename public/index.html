@@ -44,9 +44,14 @@
         <h2>Response</h2>
         <pre id="output">Ready. Create a drop or enter a seeded drop ID.</pre>
       </section>
+      <section class="card">
+        <h2>API activity</h2>
+        <ol id="activity" aria-live="polite"></ol>
+      </section>
     </main>
     <script>
       const output = document.querySelector('#output');
+      const activity = document.querySelector('#activity');
       // Express serves this UI on :3000. Live Server/file mode must target the API explicitly.
       const apiBase = window.BESPOKE_API_BASE ?? (location.port === '3000' ? '' : 'http://localhost:3000');
       const now = new Date(Date.now() + 60000);
@@ -54,6 +59,11 @@
       const show = (value) => {
         output.textContent =
           value instanceof Error ? `Request failed: ${value.message}` : JSON.stringify(value, null, 2);
+      };
+      const logActivity = (method, url, status) => {
+        const entry = document.createElement('li');
+        entry.textContent = `${new Date().toLocaleTimeString()}  ${method} ${url} → ${status}`;
+        activity.prepend(entry);
       };
       const userHeaders = () => ({
         'Content-Type': 'application/json',
@@ -65,6 +75,7 @@
           response.status === 204
             ? { status: 204 }
             : await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+        logActivity(options.method ?? 'GET', url, response.status);
         if (!response.ok) throw body;
         show(body);
         return body;

@@ -38,6 +38,18 @@ header {
 label {
   color: var(--muted);
 }
+#activity {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 22px;
+  color: var(--muted);
+  font:
+    0.82rem ui-monospace,
+    SFMono-Regular,
+    Consolas,
+    monospace;
+}
 h1 {
   margin: 0;
   font-size: clamp(2.8rem, 8vw, 5.5rem);
