@@ -3,11 +3,12 @@ import { Drop, Hold, Purchase, Wallet } from '../repositories/drop.repository.js
 import { idempotencyKeyFrom, userIdFrom } from '../middleware/auth.js';
 import { claimSchema, createDropSchema, objectId } from '../validators/drop.validator.js';
 import { ApiError } from '../utils/api-error.js';
+import { config } from '../config/env.js';
 import { claim, confirm, joinWaitlist, releaseHold } from '../services/drops.js';
 
 export const createDrop: RequestHandler = async (req, res, next) => {
   try {
-    if (req.header('x-admin-key') !== 'dev-admin') throw new ApiError(401, 'Admin key required');
+    if (req.header('x-admin-key') !== config.adminKey) throw new ApiError(401, 'Admin key required');
     const body = createDropSchema.parse(req.body);
     res.status(201).json(await Drop.create({ ...body, available: body.totalStock }));
   } catch (error) {

@@ -43,6 +43,10 @@ To create a drop use `POST /v1/admin/drops` with header `x-admin-key: dev-admin`
 
 Run `npm run format` to apply the shared formatter.
 
+## Production configuration
+
+Set `NODE_ENV=production`, a strong `ADMIN_KEY`, a production MongoDB replica-set URI, and explicit comma-separated `CORS_ORIGINS`. The server applies security headers, disables Express fingerprinting, limits JSON requests to 32 KB, rate-limits `/v1` to 300 requests/minute/IP, emits structured request logs, and exposes `GET /healthz` for readiness checks. It also closes the HTTP server, reconciliation timer, and MongoDB connection cleanly on `SIGINT` or `SIGTERM`.
+
 ## Data model and invariants
 
 `Drop.available` is the immediately claimable stock. `Hold` is an immutable-ish state record (`ACTIVE → CONFIRMED|EXPIRED|CANCELLED`); `Purchase` has a unique `holdId`; `Wallet` owns the balance. `Allocation` is the per-user-per-drop counter for held and purchased units, which enforces the limit across multiple holds. `Waitlist` has an indexed FIFO sequence and one row per user/drop.
@@ -61,7 +65,7 @@ Claims require an idempotency key, unique per `(drop,user,key)`. Repeating it re
 
 Expiry is not an in-process timer. On startup and every five seconds the reconciler finds expired active holds, releases each in a transaction, and then drains waitlists. Thus a process can die after any committed transaction and resume safely; no funds or stock are stranded permanently. Reconciliation is intentionally idempotent and may run in multiple processes.
 
-The brief does not specify a waitlist quantity, so this implementation makes the explicit choice that promotion automatically grants a **one-unit hold** in ascending `(sequence, created)` FIFO order. Entries that already reached their cap are marked skipped. A promotion is transactional and has the normal hold TTL. The sequence currently combines clock time and a random suffix; a production version would use a database sequence or a monotonic enqueue service for a globally auditable order.
+The brief does not specify a waitlist quantity, so this implementation makes the explicit choice that promotion automatically grants a **one-unit hold** in ascending `(sequence, created)` FIFO order. Entries that already reached their cap are marked skipped. A promotion is transactional and has the normal hold TTL. The sequence uses an atomic per-drop MongoDB counter, so simultaneous joins retain deterministic order. At much larger scale, it could be replaced by a dedicated monotonic enqueue service.
 
 ## Tests
 

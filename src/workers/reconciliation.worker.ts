@@ -3,8 +3,10 @@ import { reconcile } from '../services/drops.js';
 
 export async function startReconciliationWorker() {
   await reconcile();
-  setInterval(
+  const timer = setInterval(
     () => void reconcile().catch((error) => console.error('reconcile failed', error)),
     config.reconcileIntervalMs
-  ).unref();
+  );
+  timer.unref();
+  return { stop: () => clearInterval(timer) };
 }
