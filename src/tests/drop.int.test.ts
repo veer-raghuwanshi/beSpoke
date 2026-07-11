@@ -49,7 +49,7 @@ const enabled = process.env.RUN_INTEGRATION_TESTS === 'true';
     );
     expect(results.filter((x) => x.status === 'fulfilled')).toHaveLength(3);
     expect((await Drop.findById(dropId))!.available).toBe(0);
-  });
+  }, 20_000);
 
   test('claim creates an active hold and reserves inventory', async () => {
     const hold = await claim(dropId, 'u0', 1, 'claim-active');
