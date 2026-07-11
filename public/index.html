@@ -47,9 +47,8 @@
     </main>
     <script>
       const output = document.querySelector('#output');
-      // Served UI uses same-origin requests; a file-opened UI targets the local API.
-      const apiBase =
-        window.BESPOKE_API_BASE ?? (location.protocol === 'file:' ? 'http://localhost:3000' : '');
+      // Express serves this UI on :3000. Live Server/file mode must target the API explicitly.
+      const apiBase = window.BESPOKE_API_BASE ?? (location.port === '3000' ? '' : 'http://localhost:3000');
       const now = new Date(Date.now() + 60000);
       document.querySelector('[name="liveAt"]').value = now.toISOString().slice(0, 16);
       const show = (value) => {
@@ -127,9 +126,9 @@
           show(error);
         }
       });
-      if (location.protocol === 'file:') {
+      if (location.port !== '3000') {
         output.textContent =
-          'Direct-file mode will call http://localhost:3000. Start the backend with "npm run dev" before submitting a request.';
+          'This page uses http://localhost:3000 for API requests. Start the backend with "npm run dev" before submitting a request.';
       }
     </script>
   </body>
