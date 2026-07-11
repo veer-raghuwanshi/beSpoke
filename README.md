@@ -81,6 +81,14 @@ Or use the guarded runner. It rejects a URI that does not target the dedicated `
 npm run test:integration -- -MongoUri 'mongodb+srv://USER:PASSWORD@CLUSTER.mongodb.net/bespoke_test?retryWrites=true&w=majority'
 ```
 
+### Load test
+
+The HTTP load harness starts an isolated server using `bespoke_load_test`, seeds wallets, sends simultaneous claims, reports latency, and fails unless exactly `stock` claims succeed. It cleans its generated records afterward.
+
+```powershell
+npm run test:load -- -MongoUri 'mongodb+srv://USER:PASSWORD@CLUSTER.mongodb.net/bespoke_load_test?retryWrites=true&w=majority' -VirtualUsers 100 -Stock 20
+```
+
 ## Known limitations / next steps
 
 - Admin auth, input rate limiting, observability, and a durable outbox/audit ledger are intentionally outside the exercise.
