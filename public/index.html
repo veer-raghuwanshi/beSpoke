@@ -49,14 +49,20 @@
       const output = document.querySelector('#output');
       const now = new Date(Date.now() + 60000);
       document.querySelector('[name="liveAt"]').value = now.toISOString().slice(0, 16);
-      const show = (value) => (output.textContent = JSON.stringify(value, null, 2));
+      const show = (value) => {
+        output.textContent =
+          value instanceof Error ? `Request failed: ${value.message}` : JSON.stringify(value, null, 2);
+      };
       const userHeaders = () => ({
         'Content-Type': 'application/json',
         'x-user-id': document.querySelector('#userId').value,
       });
       async function request(url, options = {}) {
         const response = await fetch(url, options);
-        const body = response.status === 204 ? { status: 204 } : await response.json();
+        const body =
+          response.status === 204
+            ? { status: 204 }
+            : await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
         if (!response.ok) throw body;
         show(body);
         return body;
@@ -118,6 +124,10 @@
           show(error);
         }
       });
+      if (location.protocol === 'file:') {
+        output.textContent =
+          'The page is open as a file, so API calls cannot work. Start the backend with "npm run dev" and open http://localhost:3000 instead.';
+      }
     </script>
   </body>
 </html>
