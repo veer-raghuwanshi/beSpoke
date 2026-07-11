@@ -67,27 +67,9 @@ Expiry is not an in-process timer. On startup and every five seconds the reconci
 
 The brief does not specify a waitlist quantity, so this implementation makes the explicit choice that promotion automatically grants a **one-unit hold** in ascending `(sequence, created)` FIFO order. Entries that already reached their cap are marked skipped. A promotion is transactional and has the normal hold TTL. The sequence uses an atomic per-drop MongoDB counter, so simultaneous joins retain deterministic order. At much larger scale, it could be replaced by a dedicated monotonic enqueue service.
 
-## Tests
 
-`npm test` runs the transaction integration tests when `MONGODB_URI` points to a replica set. They exercise the two important races: many concurrent claims cannot exceed stock, and repeated confirmation charges only once. Set the environment variable explicitly if your shell does not load `.env`:
 
-```sh
-$env:MONGODB_URI='mongodb://localhost:27017/bespoke_test?replicaSet=rs0'; $env:RUN_INTEGRATION_TESTS='true'; npm test
-```
 
-Or use the guarded runner. It rejects a URI that does not target the dedicated `bespoke_test` database:
-
-```powershell
-npm run test:integration -- -MongoUri 'mongodb+srv://USER:PASSWORD@CLUSTER.mongodb.net/bespoke_test?retryWrites=true&w=majority'
-```
-
-### Load test
-
-The HTTP load harness starts an isolated server using `bespoke_load_test`, seeds wallets, sends simultaneous claims, reports latency, and fails unless exactly `stock` claims succeed. It cleans its generated records afterward.
-
-```powershell
-npm run test:load -- -MongoUri 'mongodb+srv://USER:PASSWORD@CLUSTER.mongodb.net/bespoke_load_test?retryWrites=true&w=majority' -VirtualUsers 100 -Stock 20
-```
 
 ## Known limitations / next steps
 
@@ -95,3 +77,4 @@ npm run test:load -- -MongoUri 'mongodb+srv://USER:PASSWORD@CLUSTER.mongodb.net/
 - The reconciler polls; at large scale I would use a lease-protected worker and change streams/scheduled jobs, while retaining a periodic repair scan.
 - BSON transactions require a healthy replica set. A multi-region deployment needs careful write-region placement and an explicit latency/admission strategy.
 - Monetary BSP amounts are integers. If BSP supports fractions, store the smallest indivisible unit instead of floating point.
+# beSpoke
