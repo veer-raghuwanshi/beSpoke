@@ -12,7 +12,7 @@ import {
   WaitlistSequence,
   Wallet,
 } from '../repositories/drop.repository.js';
-import { claim, confirm, joinWaitlist, reconcile, releaseHold } from '../services/drops.js';
+import { claim, confirm, joinWaitlist, reconcile, releaseHold } from '../services/index.js';
 
 const enabled = process.env.RUN_INTEGRATION_TESTS === 'true';
 (enabled ? describe : describe.skip)('transactional drop behaviour', () => {

@@ -1,5 +1,5 @@
 import { config } from '../config/env.js';
-import { reconcile } from '../services/drops.js';
+import { reconcile } from '../services/index.js';
 
 export async function startReconciliationWorker() {
   await reconcile();
