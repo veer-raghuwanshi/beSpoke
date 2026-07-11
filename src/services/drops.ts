@@ -1,8 +1,8 @@
 import { ClientSession, Types } from 'mongoose';
-import { Allocation, Drop, Hold, Purchase, Waitlist, Wallet } from '../models.js';
-import { config } from '../config.js';
-import { mongoose } from '../db.js';
-import { ApiError } from '../errors.js';
+import { Allocation, Drop, Hold, Purchase, Waitlist, Wallet } from '../repositories/drop.repository.js';
+import { config } from '../config/env.js';
+import { mongoose } from '../config/database.js';
+import { ApiError } from '../utils/api-error.js';
 
 const id = (value: string) => new Types.ObjectId(value);
 const retryTxn = async <T>(work: (session: ClientSession) => Promise<T>) => mongoose.connection.transaction(work, { readPreference: 'primary', readConcern: { level: 'snapshot' }, writeConcern: { w: 'majority' } });

@@ -1,0 +1,26 @@
+openapi: 3.0.3
+info:
+  title: BeSpoke Drops API
+  version: 1.0.0
+paths:
+  /v1/admin/drops:
+    post:
+      summary: Create a drop
+  /v1/drops/{dropId}:
+    get:
+      summary: Get drop availability
+  /v1/drops/{dropId}/claims:
+    post:
+      summary: Reserve stock (x-user-id, Idempotency-Key)
+  /v1/holds/{holdId}/confirm:
+    post:
+      summary: Confirm an active hold
+  /v1/holds/{holdId}:
+    delete:
+      summary: Cancel an active hold
+  /v1/drops/{dropId}/waitlist:
+    post:
+      summary: Join FIFO waitlist
+  /v1/me:
+    get:
+      summary: Get wallet, holds, and purchases

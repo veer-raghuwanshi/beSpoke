@@ -1,9 +1,8 @@
 import { app } from './app.js';
-import { connectDb } from './db.js';
-import { config } from './config.js';
-import { reconcile } from './services/drops.js';
+import { connectDatabase } from './config/database.js';
+import { config } from './config/env.js';
+import { startReconciliationWorker } from './workers/reconciliation.worker.js';
 
-await connectDb();
-await reconcile();
-setInterval(() => void reconcile().catch(err => console.error('reconcile failed', err)), config.reconcileIntervalMs).unref();
+await connectDatabase();
+await startReconciliationWorker();
 app.listen(config.port, () => console.log(`BeSpoke Drops listening on :${config.port}`));

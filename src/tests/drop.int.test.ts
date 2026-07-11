@@ -1,12 +1,12 @@
 /** Integration tests: run against the Docker replica set described in README. */
-import { connectDb, mongoose } from '../db.js';
-import { Allocation, Drop, Hold, Purchase, Wallet, Waitlist } from '../models.js';
-import { claim, confirm } from './drops.js';
+import { connectDatabase, mongoose } from '../config/database.js';
+import { Allocation, Drop, Hold, Purchase, Wallet, Waitlist } from '../repositories/drop.repository.js';
+import { claim, confirm } from '../services/drops.js';
 
 const enabled = Boolean(process.env.MONGODB_URI);
 (enabled ? describe : describe.skip)('transactional drop behaviour', () => {
   let dropId: string;
-  beforeAll(connectDb);
+  beforeAll(connectDatabase);
   beforeEach(async () => {
     await Promise.all([Allocation.deleteMany({}), Hold.deleteMany({}), Purchase.deleteMany({}), Waitlist.deleteMany({}), Drop.deleteMany({}), Wallet.deleteMany({})]);
     const drop = await Drop.create({ item: 'test', totalStock: 3, available: 3, liveAt: new Date(Date.now() - 1000), price: 10, maxPerUser: 1 }); dropId = String(drop._id);

@@ -14,7 +14,7 @@ npm run seed
 npm run dev
 ```
 
-The replica set is intentional: MongoDB transactions require it. The API starts at `http://localhost:3000`; a compact OpenAPI document is at `/openapi.json`.
+The replica set is intentional: MongoDB transactions require it. The API starts at `http://localhost:3000`; the OpenAPI document is at `/openapi.yaml`.
 
 Try a claim (replace `DROP_ID` with the seed output):
 
