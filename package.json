@@ -8,7 +8,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "seed": "tsx src/seed/index.ts",
-    "format": "prettier --write \"src/**/*.ts\" \"public/**/*.{html,css}\" \"*.{json,yaml,md}\"",
+    "format": "prettier --write \"src/**/*.ts\" \"public/**/*.{html,css,js}\" \"*.{json,yaml,md}\"",
     "test:integration": "powershell -ExecutionPolicy Bypass -File scripts/run-integration-tests.ps1",
     "test:load": "powershell -ExecutionPolicy Bypass -File scripts/run-load-test.ps1",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand"
@@ -19,9 +19,9 @@
     "express": "^4.19.2",
     "express-rate-limit": "^8.5.2",
     "helmet": "^8.2.0",
+    "joi": "^18.2.3",
     "mongoose": "^8.5.1",
-    "pino-http": "^10.3.0",
-    "zod": "^3.23.8"
+    "pino-http": "^10.3.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

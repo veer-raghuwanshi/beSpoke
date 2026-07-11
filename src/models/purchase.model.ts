@@ -1,7 +1,6 @@
 import { model, Schema } from 'mongoose';
 import { integer, objectId, schemaOptions, userId } from './shared.js';
 
-/** A unique hold reference is the final idempotency guard for wallet debits. */
 export const Purchase = model(
   'Purchase',
   new Schema(

@@ -6,7 +6,9 @@ import { startReconciliationWorker } from './workers/reconciliation.worker.js';
 try {
   await connectDatabase();
   const worker = await startReconciliationWorker();
-  const server = app.listen(config.port, () => console.log(`BeSpoke Drops listening on :${config.port}`));
+  const server = app.listen(config.port, () =>
+    console.log(`BeSpoke Drops listening on :${config.port}`)
+  );
 
   const shutdown = async (signal: string) => {
     console.info(`${signal} received; shutting down gracefully`);

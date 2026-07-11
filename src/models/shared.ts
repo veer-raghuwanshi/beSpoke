@@ -20,5 +20,15 @@ export const integer = (minimum: number, defaultValue?: number) => ({
   validate: { validator: isSafeInteger, message: 'must be a safe integer' },
 });
 
-export const userId = () => ({ type: String, required: true, trim: true, minlength: 1, maxlength: 128 });
-export const objectId = () => ({ type: Schema.Types.ObjectId, required: true, immutable: true });
+export const userId = () => ({
+  type: String,
+  required: true,
+  trim: true,
+  minlength: 1,
+  maxlength: 128,
+});
+export const objectId = () => ({
+  type: Schema.Types.ObjectId,
+  required: true,
+  immutable: true,
+});

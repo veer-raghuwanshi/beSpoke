@@ -8,7 +8,8 @@ import { objectId } from '../validators/common.validator.js';
 
 export const getDrop: RequestHandler = async (req, res, next) => {
   try {
-    objectId.parse(req.params.dropId);
+    const { error } = objectId.validate(req.params.dropId);
+    if (error) throw error;
     const drop = await Drop.findById(req.params.dropId);
     if (!drop) throw new ApiError(404, 'Drop not found');
     res.json(drop);
@@ -19,9 +20,23 @@ export const getDrop: RequestHandler = async (req, res, next) => {
 
 export const createClaim: RequestHandler = async (req, res, next) => {
   try {
-    objectId.parse(req.params.dropId);
-    const { quantity } = claimSchema.parse(req.body);
-    res.status(201).json(await claim(req.params.dropId, userIdFrom(req), quantity, idempotencyKeyFrom(req)));
+    const { error: idError } = objectId.validate(req.params.dropId);
+    if (idError) throw idError;
+    const { value, error } = claimSchema.validate(req.body, {
+      abortEarly: false,
+    });
+    if (error) throw error;
+    const { quantity } = value;
+    res
+      .status(201)
+      .json(
+        await claim(
+          req.params.dropId,
+          userIdFrom(req),
+          quantity,
+          idempotencyKeyFrom(req)
+        )
+      );
   } catch (error) {
     next(error);
   }
@@ -29,8 +44,11 @@ export const createClaim: RequestHandler = async (req, res, next) => {
 
 export const addToWaitlist: RequestHandler = async (req, res, next) => {
   try {
-    objectId.parse(req.params.dropId);
-    res.status(201).json(await joinWaitlist(req.params.dropId, userIdFrom(req)));
+    const { error } = objectId.validate(req.params.dropId);
+    if (error) throw error;
+    res
+      .status(201)
+      .json(await joinWaitlist(req.params.dropId, userIdFrom(req)));
   } catch (error) {
     next(error);
   }

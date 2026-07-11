@@ -1,10 +1,19 @@
-import { Allocation, Drop, Hold, Purchase, Wallet } from '../repositories/drop.repository.js';
+import {
+  Allocation,
+  Drop,
+  Hold,
+  Purchase,
+  Wallet,
+} from '../repositories/drop.repository.js';
 import { ApiError } from '../utils/api-error.js';
 import { toObjectId, withTransaction } from './transaction.service.js';
 
 export const confirm = (holdId: string, userId: string) =>
   withTransaction(async (session) => {
-    const already = await Purchase.findOne({ holdId: toObjectId(holdId), userId }).session(session);
+    const already = await Purchase.findOne({
+      holdId: toObjectId(holdId),
+      userId,
+    }).session(session);
     if (already) return already;
     const hold = await Hold.findOne({ _id: holdId, userId }).session(session);
     if (!hold) throw new ApiError(404, 'Hold not found');

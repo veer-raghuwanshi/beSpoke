@@ -1,5 +1,9 @@
 import { Router } from 'express';
-import { addToWaitlist, createClaim, getDrop } from '../controllers/drop.controller.js';
+import {
+  addToWaitlist,
+  createClaim,
+  getDrop,
+} from '../controllers/drop.controller.js';
 import { createDrop } from '../controllers/admin-drop.controller.js';
 import { cancelHold, confirmHold } from '../controllers/hold.controller.js';
 import { getMyAccount } from '../controllers/account.controller.js';

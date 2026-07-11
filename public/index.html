@@ -23,20 +23,58 @@
       <section class="grid">
         <form id="createForm" class="card">
           <h2>Create a drop</h2>
-          <label>Item <input name="item" value="Midnight Bomber" required /></label>
-          <label>Stock <input name="totalStock" type="number" min="1" value="5" required /></label>
-          <label>Price (BSP) <input name="price" type="number" min="1" value="25" required /></label>
-          <label>Max per user <input name="maxPerUser" type="number" min="1" value="2" required /></label>
-          <label>Live at <input name="liveAt" type="datetime-local" required /></label>
+          <label
+            >Item <input name="item" value="Midnight Bomber" required
+          /></label>
+          <label
+            >Stock
+            <input name="totalStock" type="number" min="1" value="5" required
+          /></label>
+          <label
+            >Price (BSP)
+            <input name="price" type="number" min="1" value="25" required
+          /></label>
+          <label
+            >Max per user
+            <input name="maxPerUser" type="number" min="1" value="2" required
+          /></label>
+          <label
+            >Live at <input name="liveAt" type="datetime-local" required
+          /></label>
           <button>Create drop</button>
         </form>
 
         <form id="claimForm" class="card">
           <h2>Claim stock</h2>
-          <label>Drop ID <input name="dropId" placeholder="Mongo ObjectId" required /></label>
-          <label>Quantity <input name="quantity" type="number" min="1" value="1" required /></label>
+          <label
+            >Drop ID <input name="dropId" placeholder="Mongo ObjectId" required
+          /></label>
+          <label
+            >Quantity
+            <input name="quantity" type="number" min="1" value="1" required
+          /></label>
           <button>Reserve hold</button>
-          <button id="waitlistButton" type="button" class="secondary">Join waitlist</button>
+          <button id="getDropButton" type="button" class="secondary">
+            Read drop
+          </button>
+          <button id="waitlistButton" type="button" class="secondary">
+            Join waitlist
+          </button>
+        </form>
+
+        <form id="holdForm" class="card">
+          <h2>Manage a hold</h2>
+          <label
+            >Hold ID
+            <input
+              name="holdId"
+              placeholder="Created after a successful claim"
+              required
+          /></label>
+          <button type="submit">Confirm &amp; purchase</button>
+          <button id="cancelHoldButton" type="button" class="secondary">
+            Cancel hold
+          </button>
         </form>
       </section>
 
@@ -44,131 +82,12 @@
         <h2>Response</h2>
         <pre id="output">Ready. Create a drop or enter a seeded drop ID.</pre>
       </section>
+
       <section class="card">
         <h2>API activity</h2>
         <ol id="activity" aria-live="polite"></ol>
       </section>
-      <section class="card">
-        <div class="section-heading">
-          <div>
-            <h2>Reliability test cases</h2>
-            <p>Runs only from the terminal against the protected <code>bespoke_test</code> database.</p>
-          </div>
-          <button id="copyTestCommand" class="secondary" type="button">Copy test command</button>
-        </div>
-        <ol class="test-cases">
-          <li>TC-019 — Concurrent claims never oversell stock.</li>
-          <li>TC-009 — Claim creates an active hold and reduces available inventory.</li>
-          <li>TC-046 — Repeating a claim idempotency key returns the original hold.</li>
-          <li>TC-093 — One user cannot exceed the maximum units per drop.</li>
-          <li>TC-026 / TC-029 — Expiry returns stock once, even when the worker runs twice.</li>
-          <li>TC-047 — Concurrent payment confirmation deducts the wallet once.</li>
-          <li>TC-036 / TC-042 — Insufficient balance preserves wallet and active hold.</li>
-          <li>TC-052 / TC-053 — Released stock promotes the first FIFO waitlist user.</li>
-        </ol>
-      </section>
     </main>
-    <script>
-      const output = document.querySelector('#output');
-      const activity = document.querySelector('#activity');
-      // Express serves this UI on :3000. Live Server/file mode must target the API explicitly.
-      const apiBase = window.BESPOKE_API_BASE ?? (location.port === '3000' ? '' : 'http://localhost:3000');
-      const now = new Date(Date.now() + 60000);
-      document.querySelector('[name="liveAt"]').value = now.toISOString().slice(0, 16);
-      const show = (value) => {
-        output.textContent =
-          value instanceof Error ? `Request failed: ${value.message}` : JSON.stringify(value, null, 2);
-      };
-      const logActivity = (method, url, status) => {
-        const entry = document.createElement('li');
-        entry.textContent = `${new Date().toLocaleTimeString()}  ${method} ${url} → ${status}`;
-        activity.prepend(entry);
-      };
-      const userHeaders = () => ({
-        'Content-Type': 'application/json',
-        'x-user-id': document.querySelector('#userId').value,
-      });
-      async function request(url, options = {}) {
-        const response = await fetch(url, options);
-        const body =
-          response.status === 204
-            ? { status: 204 }
-            : await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
-        logActivity(options.method ?? 'GET', url, response.status);
-        if (!response.ok) throw body;
-        show(body);
-        return body;
-      }
-      document.querySelector('#createForm').addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const data = Object.fromEntries(new FormData(event.currentTarget));
-        try {
-          const drop = await request(`${apiBase}/v1/admin/drops`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-admin-key': document.querySelector('#adminKey').value,
-            },
-            body: JSON.stringify({
-              ...data,
-              totalStock: Number(data.totalStock),
-              price: Number(data.price),
-              maxPerUser: Number(data.maxPerUser),
-              liveAt: new Date(data.liveAt).toISOString(),
-            }),
-          });
-          document.querySelector('[name="dropId"]').value = drop._id;
-        } catch (error) {
-          show(error);
-        }
-      });
-      document.querySelector('#claimForm').addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const data = Object.fromEntries(new FormData(event.currentTarget));
-        try {
-          await request(`${apiBase}/v1/drops/${data.dropId}/claims`, {
-            method: 'POST',
-            headers: {
-              ...userHeaders(),
-              'Idempotency-Key': crypto.randomUUID(),
-            },
-            body: JSON.stringify({ quantity: Number(data.quantity) }),
-          });
-        } catch (error) {
-          show(error);
-        }
-      });
-      document.querySelector('#waitlistButton').addEventListener('click', async () => {
-        const dropId = document.querySelector('[name="dropId"]').value;
-        try {
-          await request(`${apiBase}/v1/drops/${dropId}/waitlist`, {
-            method: 'POST',
-            headers: userHeaders(),
-          });
-        } catch (error) {
-          show(error);
-        }
-      });
-      document.querySelector('#accountButton').addEventListener('click', async () => {
-        try {
-          await request(`${apiBase}/v1/me`, { headers: userHeaders() });
-        } catch (error) {
-          show(error);
-        }
-      });
-      document.querySelector('#copyTestCommand').addEventListener('click', async () => {
-        const command = "npm run test:integration -- -MongoUri 'YOUR_BESPOKE_TEST_MONGODB_URI'";
-        try {
-          await navigator.clipboard.writeText(command);
-          show({ message: 'Test command copied. Paste it into PowerShell after replacing the URI.' });
-        } catch {
-          show({ command, message: 'Copy was blocked by the browser; copy this command manually.' });
-        }
-      });
-      if (location.port !== '3000') {
-        output.textContent =
-          'This page uses http://localhost:3000 for API requests. Start the backend with "npm run dev" before submitting a request.';
-      }
-    </script>
+    <script src="app.js"></script>
   </body>
 </html>

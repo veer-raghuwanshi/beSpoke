@@ -1,2 +1,5 @@
-import { z } from 'zod';
-export const claimSchema = z.object({ quantity: z.number().int().positive() });
+import Joi from 'joi';
+
+export const claimSchema = Joi.object({
+  quantity: Joi.number().integer().positive().required(),
+});

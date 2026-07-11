@@ -1,7 +1,3 @@
-/**
- * Destructive integration tests. Explicit opt-in avoids deleting a developer's
- * Atlas data when `npm test` is run with a normal application .env file.
- */
 import { connectDatabase, mongoose } from '../config/database.js';
 import {
   Allocation,
@@ -12,7 +8,13 @@ import {
   WaitlistSequence,
   Wallet,
 } from '../repositories/drop.repository.js';
-import { claim, confirm, joinWaitlist, reconcile, releaseHold } from '../services/index.js';
+import {
+  claim,
+  confirm,
+  joinWaitlist,
+  reconcile,
+  releaseHold,
+} from '../services/index.js';
 
 const enabled = process.env.RUN_INTEGRATION_TESTS === 'true';
 (enabled ? describe : describe.skip)('transactional drop behaviour', () => {
@@ -37,7 +39,9 @@ const enabled = process.env.RUN_INTEGRATION_TESTS === 'true';
       maxPerUser: 1,
     });
     dropId = String(drop._id);
-    await Wallet.insertMany(Array.from({ length: 20 }, (_, i) => ({ userId: `u${i}`, balance: 100 })));
+    await Wallet.insertMany(
+      Array.from({ length: 20 }, (_, i) => ({ userId: `u${i}`, balance: 100 }))
+    );
   });
   afterAll(async () => {
     await mongoose.disconnect();
@@ -45,7 +49,9 @@ const enabled = process.env.RUN_INTEGRATION_TESTS === 'true';
 
   test('concurrent claims cannot oversell', async () => {
     const results = await Promise.allSettled(
-      Array.from({ length: 20 }, (_, i) => claim(dropId, `u${i}`, 1, `key-${i}`))
+      Array.from({ length: 20 }, (_, i) =>
+        claim(dropId, `u${i}`, 1, `key-${i}`)
+      )
     );
     expect(results.filter((x) => x.status === 'fulfilled')).toHaveLength(3);
     expect((await Drop.findById(dropId))!.available).toBe(0);
@@ -69,13 +75,18 @@ const enabled = process.env.RUN_INTEGRATION_TESTS === 'true';
   test('a user cannot exceed the per-drop cap across separate claims', async () => {
     await claim(dropId, 'u0', 1, 'first');
 
-    await expect(claim(dropId, 'u0', 1, 'second')).rejects.toMatchObject({ status: 409 });
+    await expect(claim(dropId, 'u0', 1, 'second')).rejects.toMatchObject({
+      status: 409,
+    });
     expect((await Drop.findById(dropId))!.available).toBe(2);
   });
 
   test('expiry returns stock exactly once even when the worker runs twice', async () => {
     const hold = await claim(dropId, 'u0', 1, 'expire');
-    await Hold.updateOne({ _id: hold._id }, { $set: { expiresAt: new Date(Date.now() - 1) } });
+    await Hold.updateOne(
+      { _id: hold._id },
+      { $set: { expiresAt: new Date(Date.now() - 1) } }
+    );
 
     await reconcile();
     await reconcile();
@@ -85,7 +96,10 @@ const enabled = process.env.RUN_INTEGRATION_TESTS === 'true';
   });
   test('repeated confirmation debits once', async () => {
     const hold = await claim(dropId, 'u0', 1, 'claim');
-    await Promise.all([confirm(String(hold._id), 'u0'), confirm(String(hold._id), 'u0')]);
+    await Promise.all([
+      confirm(String(hold._id), 'u0'),
+      confirm(String(hold._id), 'u0'),
+    ]);
     expect((await Wallet.findOne({ userId: 'u0' }))!.balance).toBe(90);
     expect(await Purchase.countDocuments({ holdId: hold._id })).toBe(1);
   });
@@ -94,7 +108,9 @@ const enabled = process.env.RUN_INTEGRATION_TESTS === 'true';
     await Wallet.updateOne({ userId: 'u0' }, { $set: { balance: 5 } });
     const hold = await claim(dropId, 'u0', 1, 'poor-wallet');
 
-    await expect(confirm(String(hold._id), 'u0')).rejects.toMatchObject({ status: 409 });
+    await expect(confirm(String(hold._id), 'u0')).rejects.toMatchObject({
+      status: 409,
+    });
 
     expect((await Wallet.findOne({ userId: 'u0' }))!.balance).toBe(5);
     expect((await Hold.findById(hold._id))!.status).toBe('ACTIVE');
@@ -117,7 +133,11 @@ const enabled = process.env.RUN_INTEGRATION_TESTS === 'true';
 
     await releaseHold(String(soldHold._id), 'CANCELLED');
 
-    const promoted = await Hold.findOne({ dropId: waitingDropId, status: 'ACTIVE', source: 'WAITLIST' });
+    const promoted = await Hold.findOne({
+      dropId: waitingDropId,
+      status: 'ACTIVE',
+      source: 'WAITLIST',
+    });
     expect(promoted!.userId).toBe('u1');
   });
 });

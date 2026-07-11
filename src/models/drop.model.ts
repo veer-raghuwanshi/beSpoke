@@ -1,10 +1,15 @@
 import { model, Schema } from 'mongoose';
 import { integer, schemaOptions } from './shared.js';
 
-/** Inventory source of truth. Availability is mutated only inside a MongoDB transaction. */
 const dropSchema = new Schema(
   {
-    item: { type: String, required: true, trim: true, minlength: 1, maxlength: 256 },
+    item: {
+      type: String,
+      required: true,
+      trim: true,
+      minlength: 1,
+      maxlength: 256,
+    },
     totalStock: integer(1),
     available: integer(0),
     liveAt: { type: Date, required: true, index: true },
@@ -15,8 +20,10 @@ const dropSchema = new Schema(
 ).index({ liveAt: 1, available: 1 });
 
 dropSchema.pre('validate', function validateBounds(next) {
-  if (this.available > this.totalStock) return next(new Error('available cannot exceed totalStock'));
-  if (this.maxPerUser > this.totalStock) return next(new Error('maxPerUser cannot exceed totalStock'));
+  if (this.available > this.totalStock)
+    return next(new Error('available cannot exceed totalStock'));
+  if (this.maxPerUser > this.totalStock)
+    return next(new Error('maxPerUser cannot exceed totalStock'));
   next();
 });
 

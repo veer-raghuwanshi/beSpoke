@@ -8,12 +8,41 @@ Prerequisites: Node 20+ and a MongoDB replica set (local or Atlas).
 
 ```sh
 npm install
-Copy-Item .env.example .env       # PowerShell; optional defaults already work
+Copy-Item .env.example .env
+# optional defaults already work
 npm run seed
 npm run dev
 ```
 
-The replica set is intentional: MongoDB transactions require it. Set `MONGODB_URI` in `.env` to your local or Atlas replica-set connection string. The API starts at `http://localhost:3000`; the OpenAPI document is at `/openapi.yaml`.
+The replica set is intentional: MongoDB transactions require it. Set
+`MONGODB_URI` in `.env` to your local or Atlas replica-set connection string.
+The API starts at `http://localhost:3000`; the OpenAPI document is at
+`/openapi.yaml`.
+
+### Atlas setup
+
+1. Create a MongoDB Atlas project and deploy a free M0 cluster.
+2. In **Database & Network Access**, add **My Current IP Address**. Do not use
+   `0.0.0.0/0` except as a short-lived local-development workaround.
+3. In **Database & Database Access**, create a database user with a generated
+   username and password. Give it `readWrite` access to the `bespoke` database
+   (or use `readWriteAnyDatabase` only for this development exercise).
+4. On the cluster page, select **Connect** → **Drivers** → **Node.js**, then
+   copy the SRV connection string.
+5. URL-encode the password if it contains special characters, then set the
+   following value in `.env`:
+
+   ```env
+   MONGODB_URI=mongodb+srv://<username>:<encoded-password>@<cluster-host>/bespoke?retryWrites=true&w=majority
+   ```
+
+6. Run `npm run seed`, then `npm run dev`.
+
+Atlas projects allow connections only from IP addresses in their access list,
+and database users are separate from Atlas login users. The SRV string above is
+the format Atlas provides for application drivers. See MongoDB's
+[Atlas connection guide](https://www.mongodb.com/docs/atlas/driver-connection/)
+for the current UI flow.
 
 Try a claim (replace `DROP_ID` with the seed output):
 
@@ -39,42 +68,103 @@ To create a drop use `POST /v1/admin/drops` with header `x-admin-key: dev-admin`
 
 ## Project layout
 
-`controllers` translate HTTP requests to use cases; `routes` bind URLs; `services` own transaction and business rules; `repositories` form the data-access boundary; `models` define Mongo schemas and indexes. `workers` handle restart-safe expiry work, `validators` validate API input, and `public` is a small browser API console served at `/`.
+`controllers` translate HTTP requests to use cases; `routes` bind URLs;
+`services` own transaction and business rules; `repositories` form the
+data-access boundary; `models` define Mongo schemas and indexes. `workers`
+handle restart-safe expiry work, `validators` validate API input, and `public`
+is a small browser API console served at `/`.
 
 Run `npm run format` to apply the shared formatter.
 
 ## Production configuration
 
-Set `NODE_ENV=production`, a strong `ADMIN_KEY`, a production MongoDB replica-set URI, and explicit comma-separated `CORS_ORIGINS`. The server applies security headers, disables Express fingerprinting, limits JSON requests to 32 KB, rate-limits `/v1` to 300 requests/minute/IP, emits structured request logs, and exposes `GET /healthz` for readiness checks. It also closes the HTTP server, reconciliation timer, and MongoDB connection cleanly on `SIGINT` or `SIGTERM`.
+Set `NODE_ENV=production`, a strong `ADMIN_KEY`, a production MongoDB
+replica-set URI, and explicit comma-separated `CORS_ORIGINS`. The server applies
+security headers, disables Express fingerprinting, limits JSON requests to
+32 KB, rate-limits `/v1` to 300 requests per minute per IP, emits structured
+request logs, and exposes `GET /healthz` for readiness checks. It also closes
+the HTTP server, reconciliation timer, and MongoDB connection cleanly on
+`SIGINT` or `SIGTERM`.
 
 ## Data model and invariants
 
-`Drop.available` is the immediately claimable stock. `Hold` is an immutable-ish state record (`ACTIVE → CONFIRMED|EXPIRED|CANCELLED`); `Purchase` has a unique `holdId`; `Wallet` owns the balance. `Allocation` is the per-user-per-drop counter for held and purchased units, which enforces the limit across multiple holds. `Waitlist` has an indexed FIFO sequence and one row per user/drop.
+`Drop.available` is the immediately claimable stock. `Hold` records an active
+reservation that becomes `CONFIRMED`, `EXPIRED`, or `CANCELLED`. `Purchase` has
+a unique `holdId`; `Wallet` owns the balance. `Allocation` keeps a
+per-user-per-drop count of held and purchased units, enforcing the user limit
+across multiple holds. `Waitlist` has an indexed FIFO sequence and one row per
+user/drop.
 
-Every state transition that could lose inventory or money is a Mongo transaction using majority writes:
+Every state transition that could lose inventory or money is a MongoDB
+transaction with majority writes:
 
-- A claim conditionally decrements `available`, increments the allocation, and creates the hold together.
-- Confirmation conditionally debits sufficient wallet balance, transitions the active/unexpired hold, moves allocation from held to purchased, and inserts the one purchase together.
-- Cancellation/expiry conditionally transitions the hold and returns precisely its units.
+- A claim conditionally decrements `available`, increments allocation, and
+  creates the hold together.
+- Confirmation conditionally debits sufficient wallet balance, changes an
+  active and unexpired hold to confirmed, updates allocation, and creates the
+  purchase together.
+- Cancellation or expiry changes the hold state and returns exactly its units.
 
-Mongo automatically retries transient transaction conflicts. The conditional stock/wallet updates are still present so a retry cannot oversell or overdraft. This means a thousand simultaneous claims may produce conflicts/retries, but never negative stock. The primary `Drop` document is a deliberate contention point for a single limited drop; for substantially higher scale I would shard by drop and consider a queue/admission layer, while preserving this transactional reservation boundary.
+MongoDB retries transient transaction conflicts. Conditional stock and wallet
+updates are also retained, so a retry cannot oversell stock or overdraw a
+wallet. A `Drop` document is intentionally a contention point for one limited
+drop. At higher scale, the system could shard by drop and add an admission queue
+while retaining this transactional reservation boundary.
 
 ## Retries, expiry, and restarts
 
-Claims require an idempotency key, unique per `(drop,user,key)`. Repeating it returns the original hold; changing the quantity returns `409`. Confirmation is naturally idempotent because it first returns the unique purchase for that hold. A failed debit leaves the hold active until expiry.
+Claims require an idempotency key, unique per `(drop, user, key)`. Repeating a
+key returns the original hold; changing the quantity returns `409`.
+Confirmation is idempotent because it first returns the unique purchase for the
+hold. A failed wallet debit leaves the hold active until expiry.
 
-Expiry is not an in-process timer. On startup and every five seconds the reconciler finds expired active holds, releases each in a transaction, and then drains waitlists. Thus a process can die after any committed transaction and resume safely; no funds or stock are stranded permanently. Reconciliation is intentionally idempotent and may run in multiple processes.
+Expiry is not an in-process timer. On startup and every five seconds, the
+reconciler finds expired active holds, releases each in a transaction, and then
+drains waitlists. A process can therefore stop after any committed transaction
+and restart without permanently stranding stock or funds. Reconciliation is
+idempotent and can run in more than one process.
 
-The brief does not specify a waitlist quantity, so this implementation makes the explicit choice that promotion automatically grants a **one-unit hold** in ascending `(sequence, created)` FIFO order. Entries that already reached their cap are marked skipped. A promotion is transactional and has the normal hold TTL. The sequence uses an atomic per-drop MongoDB counter, so simultaneous joins retain deterministic order. At much larger scale, it could be replaced by a dedicated monotonic enqueue service.
+The brief does not specify a waitlist quantity. This implementation deliberately
+promotes users with a one-unit hold in ascending FIFO sequence order. Entries
+that already reached their cap are marked skipped. Each promotion is
+transactional and receives the normal hold TTL.
 
+## Tests
 
+`npm test` runs integration tests when `MONGODB_URI` points to a replica set.
+The tests cover concurrent claims, idempotency, per-user limits, expiry,
+repeated confirmation, insufficient balance, and FIFO waitlist promotion.
 
+<!-- ```powershell
+$env:MONGODB_URI='mongodb+srv://<username>:<encoded-password>@<cluster-host>/bespoke_test?retryWrites=true&w=majority'
+$env:RUN_INTEGRATION_TESTS='true'
+npm test
+```
 
+The guarded runner rejects a URI that does not use the dedicated
+`bespoke_test` database:
 
-## Known limitations / next steps
+```powershell
+npm run test:integration -- -MongoUri 'mongodb+srv://<username>:<encoded-password>@<cluster-host>/bespoke_test?retryWrites=true&w=majority'
+``` -->
 
-- Admin auth, input rate limiting, observability, and a durable outbox/audit ledger are intentionally outside the exercise.
-- The reconciler polls; at large scale I would use a lease-protected worker and change streams/scheduled jobs, while retaining a periodic repair scan.
-- BSON transactions require a healthy replica set. A multi-region deployment needs careful write-region placement and an explicit latency/admission strategy.
-- Monetary BSP amounts are integers. If BSP supports fractions, store the smallest indivisible unit instead of floating point.
-# beSpoke
+### Load test
+
+The HTTP load harness starts an isolated server using `bespoke_load_test`, seeds
+wallets, sends simultaneous claims, reports latency, and fails unless exactly
+the requested stock count succeeds. It cleans its generated records afterward.
+
+<!-- ```powershell
+npm run test:load -- -MongoUri 'mongodb+srv://<username>:<encoded-password>@<cluster-host>/bespoke_load_test?retryWrites=true&w=majority' -VirtualUsers 100 -Stock 20
+``` -->
+
+## Known limitations and next steps
+
+- Admin authentication, input-specific rate limits, observability, and a durable
+  outbox or audit ledger are outside this exercise.
+- The reconciler polls. At larger scale, use a lease-protected worker and change
+  streams or scheduled jobs while retaining a periodic repair scan.
+- MongoDB transactions require a healthy replica set. A multi-region deployment
+  needs deliberate write-region placement and an explicit latency strategy.
+- BSP amounts are integers. If fractional BSP is required, store the smallest
+  indivisible unit instead of floating-point values.
