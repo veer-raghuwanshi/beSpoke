@@ -1,1 +1,1 @@
-module.exports = { preset: 'ts-jest', testEnvironment: 'node', testMatch: ['**/*.test.ts'], moduleNameMapper: { '^(\\.{1,2}/.*)\\.js$': '$1' } };
+module.exports = { preset: 'ts-jest/presets/default-esm', testEnvironment: 'node', testMatch: ['**/*.test.ts'], extensionsToTreatAsEsm: ['.ts'], moduleNameMapper: { '^(\\.{1,2}/.*)\\.js$': '$1' }, globals: { 'ts-jest': { useESM: true } } };

@@ -8,7 +8,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "seed": "tsx src/scripts/seed.ts",
-    "test": "jest --runInBand"
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
