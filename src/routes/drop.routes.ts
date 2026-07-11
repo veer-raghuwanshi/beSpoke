@@ -1,5 +1,13 @@
 import { Router } from 'express';
-import { addToWaitlist, cancelHold, confirmHold, createClaim, createDrop, getDrop, getMyAccount } from '../controllers/drop.controller.js';
+import {
+  addToWaitlist,
+  cancelHold,
+  confirmHold,
+  createClaim,
+  createDrop,
+  getDrop,
+  getMyAccount,
+} from '../controllers/drop.controller.js';
 
 export const dropRouter = Router();
 dropRouter.post('/admin/drops', createDrop);

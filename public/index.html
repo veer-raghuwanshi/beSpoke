@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BeSpoke Drops</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <p class="eyebrow">BSP / LIMITED EDITIONS</p>
+        <h1>Drop console</h1>
+        <p class="lede">A small API explorer for the BeSpoke Drops backend.</p>
+      </header>
+
+      <section class="card settings">
+        <label>User ID <input id="userId" value="alice" /></label>
+        <label>Admin key <input id="adminKey" value="dev-admin" /></label>
+        <button id="accountButton" class="secondary">Refresh my account</button>
+      </section>
+
+      <section class="grid">
+        <form id="createForm" class="card">
+          <h2>Create a drop</h2>
+          <label>Item <input name="item" value="Midnight Bomber" required /></label>
+          <label>Stock <input name="totalStock" type="number" min="1" value="5" required /></label>
+          <label>Price (BSP) <input name="price" type="number" min="1" value="25" required /></label>
+          <label>Max per user <input name="maxPerUser" type="number" min="1" value="2" required /></label>
+          <label>Live at <input name="liveAt" type="datetime-local" required /></label>
+          <button>Create drop</button>
+        </form>
+
+        <form id="claimForm" class="card">
+          <h2>Claim stock</h2>
+          <label>Drop ID <input name="dropId" placeholder="Mongo ObjectId" required /></label>
+          <label>Quantity <input name="quantity" type="number" min="1" value="1" required /></label>
+          <button>Reserve hold</button>
+          <button id="waitlistButton" type="button" class="secondary">Join waitlist</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Response</h2>
+        <pre id="output">Ready. Create a drop or enter a seeded drop ID.</pre>
+      </section>
+    </main>
+    <script>
+      const output = document.querySelector('#output');
+      const now = new Date(Date.now() + 60000);
+      document.querySelector('[name="liveAt"]').value = now.toISOString().slice(0, 16);
+      const show = (value) => (output.textContent = JSON.stringify(value, null, 2));
+      const userHeaders = () => ({
+        'Content-Type': 'application/json',
+        'x-user-id': document.querySelector('#userId').value,
+      });
+      async function request(url, options = {}) {
+        const response = await fetch(url, options);
+        const body = response.status === 204 ? { status: 204 } : await response.json();
+        if (!response.ok) throw body;
+        show(body);
+        return body;
+      }
+      document.querySelector('#createForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const data = Object.fromEntries(new FormData(event.currentTarget));
+        try {
+          const drop = await request('/v1/admin/drops', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-admin-key': document.querySelector('#adminKey').value,
+            },
+            body: JSON.stringify({
+              ...data,
+              totalStock: Number(data.totalStock),
+              price: Number(data.price),
+              maxPerUser: Number(data.maxPerUser),
+              liveAt: new Date(data.liveAt).toISOString(),
+            }),
+          });
+          document.querySelector('[name="dropId"]').value = drop._id;
+        } catch (error) {
+          show(error);
+        }
+      });
+      document.querySelector('#claimForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const data = Object.fromEntries(new FormData(event.currentTarget));
+        try {
+          await request(`/v1/drops/${data.dropId}/claims`, {
+            method: 'POST',
+            headers: {
+              ...userHeaders(),
+              'Idempotency-Key': crypto.randomUUID(),
+            },
+            body: JSON.stringify({ quantity: Number(data.quantity) }),
+          });
+        } catch (error) {
+          show(error);
+        }
+      });
+      document.querySelector('#waitlistButton').addEventListener('click', async () => {
+        const dropId = document.querySelector('[name="dropId"]').value;
+        try {
+          await request(`/v1/drops/${dropId}/waitlist`, {
+            method: 'POST',
+            headers: userHeaders(),
+          });
+        } catch (error) {
+          show(error);
+        }
+      });
+      document.querySelector('#accountButton').addEventListener('click', async () => {
+        try {
+          await request('/v1/me', { headers: userHeaders() });
+        } catch (error) {
+          show(error);
+        }
+      });
+    </script>
+  </body>
+</html>

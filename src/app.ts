@@ -7,6 +7,7 @@ import { dropRouter } from './routes/drop.routes.js';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const app = express();
 app.use(express.json());
+app.use(express.static(path.join(root, 'public')));
 app.use('/v1', dropRouter);
 app.get('/openapi.yaml', (_req, res) => res.sendFile(path.join(root, 'swagger.yaml')));
 app.use(errorHandler);

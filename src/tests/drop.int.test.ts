@@ -1,22 +1,44 @@
-/** Integration tests: run against the Docker replica set described in README. */
+/**
+ * Destructive integration tests. Explicit opt-in avoids deleting a developer's
+ * Atlas data when `npm test` is run with a normal application .env file.
+ */
 import { connectDatabase, mongoose } from '../config/database.js';
 import { Allocation, Drop, Hold, Purchase, Wallet, Waitlist } from '../repositories/drop.repository.js';
 import { claim, confirm } from '../services/drops.js';
 
-const enabled = Boolean(process.env.MONGODB_URI);
+const enabled = process.env.RUN_INTEGRATION_TESTS === 'true';
 (enabled ? describe : describe.skip)('transactional drop behaviour', () => {
   let dropId: string;
   beforeAll(connectDatabase);
   beforeEach(async () => {
-    await Promise.all([Allocation.deleteMany({}), Hold.deleteMany({}), Purchase.deleteMany({}), Waitlist.deleteMany({}), Drop.deleteMany({}), Wallet.deleteMany({})]);
-    const drop = await Drop.create({ item: 'test', totalStock: 3, available: 3, liveAt: new Date(Date.now() - 1000), price: 10, maxPerUser: 1 }); dropId = String(drop._id);
+    await Promise.all([
+      Allocation.deleteMany({}),
+      Hold.deleteMany({}),
+      Purchase.deleteMany({}),
+      Waitlist.deleteMany({}),
+      Drop.deleteMany({}),
+      Wallet.deleteMany({}),
+    ]);
+    const drop = await Drop.create({
+      item: 'test',
+      totalStock: 3,
+      available: 3,
+      liveAt: new Date(Date.now() - 1000),
+      price: 10,
+      maxPerUser: 1,
+    });
+    dropId = String(drop._id);
     await Wallet.insertMany(Array.from({ length: 20 }, (_, i) => ({ userId: `u${i}`, balance: 100 })));
   });
-  afterAll(async () => { await mongoose.disconnect(); });
+  afterAll(async () => {
+    await mongoose.disconnect();
+  });
 
   test('concurrent claims cannot oversell', async () => {
-    const results = await Promise.allSettled(Array.from({ length: 20 }, (_, i) => claim(dropId, `u${i}`, 1, `key-${i}`)));
-    expect(results.filter(x => x.status === 'fulfilled')).toHaveLength(3);
+    const results = await Promise.allSettled(
+      Array.from({ length: 20 }, (_, i) => claim(dropId, `u${i}`, 1, `key-${i}`))
+    );
+    expect(results.filter((x) => x.status === 'fulfilled')).toHaveLength(3);
     expect((await Drop.findById(dropId))!.available).toBe(0);
   });
   test('repeated confirmation debits once', async () => {

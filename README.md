@@ -27,15 +27,21 @@ To create a drop use `POST /v1/admin/drops` with header `x-admin-key: dev-admin`
 
 ## Endpoints
 
-| Method | Path | Purpose |
-|---|---|---|
-| POST | `/v1/admin/drops` | Create a scheduled drop |
-| GET | `/v1/drops/:dropId` | Read availability and configuration |
-| POST | `/v1/drops/:dropId/claims` | Reserve quantity; requires `Idempotency-Key` |
-| POST | `/v1/holds/:holdId/confirm` | Charge wallet and make purchase |
-| DELETE | `/v1/holds/:holdId` | Cancel active hold |
-| POST | `/v1/drops/:dropId/waitlist` | Join the sold-out FIFO waitlist |
-| GET | `/v1/me` | Wallet, holds, and purchases |
+| Method | Path                         | Purpose                                      |
+| ------ | ---------------------------- | -------------------------------------------- |
+| POST   | `/v1/admin/drops`            | Create a scheduled drop                      |
+| GET    | `/v1/drops/:dropId`          | Read availability and configuration          |
+| POST   | `/v1/drops/:dropId/claims`   | Reserve quantity; requires `Idempotency-Key` |
+| POST   | `/v1/holds/:holdId/confirm`  | Charge wallet and make purchase              |
+| DELETE | `/v1/holds/:holdId`          | Cancel active hold                           |
+| POST   | `/v1/drops/:dropId/waitlist` | Join the sold-out FIFO waitlist              |
+| GET    | `/v1/me`                     | Wallet, holds, and purchases                 |
+
+## Project layout
+
+`controllers` translate HTTP requests to use cases; `routes` bind URLs; `services` own transaction and business rules; `repositories` form the data-access boundary; `models` define Mongo schemas and indexes. `workers` handle restart-safe expiry work, `validators` validate API input, and `public` is a small browser API console served at `/`.
+
+Run `npm run format` to apply the shared formatter.
 
 ## Data model and invariants
 
@@ -62,7 +68,7 @@ The brief does not specify a waitlist quantity, so this implementation makes the
 `npm test` runs the transaction integration tests when `MONGODB_URI` points to a replica set. They exercise the two important races: many concurrent claims cannot exceed stock, and repeated confirmation charges only once. Set the environment variable explicitly if your shell does not load `.env`:
 
 ```sh
-$env:MONGODB_URI='mongodb://localhost:27017/bespoke_test?replicaSet=rs0'; npm test
+$env:MONGODB_URI='mongodb://localhost:27017/bespoke_test?replicaSet=rs0'; $env:RUN_INTEGRATION_TESTS='true'; npm test
 ```
 
 ## Known limitations / next steps
